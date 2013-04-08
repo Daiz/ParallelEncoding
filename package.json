@@ -1,0 +1,30 @@
+{
+  "name": "parallelencoding",
+  "version": "0.0.1",
+  "author": "Daiz <taneli.vatanen@gmail.com>",
+  "description": "A script for parallel encoding Avisynth scripts.",
+  "bin": {
+    "encode": "./bin/encode"
+  },
+  "scripts": {
+    "encode": "node ./bin/encode"
+  },
+  "main": "./parallelencoding",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Daiz-/ParallelEncoding.git"
+  },
+  "keywords": [
+    "video",
+    "encoding",
+    "avisynth",
+    "parallel"
+  ],
+  "dependencies": {
+    "q" : "0.9.X"
+  },
+  "license": "MIT",
+  "engines": {
+    "node": ">=0.8"
+  }
+}
