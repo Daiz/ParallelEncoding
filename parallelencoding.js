@@ -7,24 +7,75 @@ var tracker = require('./lib/taskman')(process.stdout),
     Q       = require('q'),
     fs      = require('fs');
 
-var AVS = ".avs",
-    FRAMES = 0,
-    INPUT = "",
-    FORMAT = ".mkv",
-    PARTS = 1;
+module.exports = function(input, args) {
 
-module.exports = function(input, parts, format) {
+  var opts = {
+    parts: 1,
+    merge: false,
+    qpfile: null,
+    tcfile: null,
+    cmd: ""
+  };
 
-INPUT  = input,
-FORMAT = "."+format,
-PARTS  = parts;
+  if(args.settings) {
+    opts.cmd = args.settings;
+  }
+
+  if(args.setfile) {
+    if(fs.existsSync(args.setfile)) {
+      opts.cmd = fs.readFileSync(args.setfile, {encoding:"utf8"});
+    } else {
+      console.log("Could not find "+args.setfile);
+    }
+  }
+
+  // check for encode.json - existence overrides --settings and --setfile
+  if(fs.existsSync("./encode.json")) {
+    var settings = require('./encode.json'),
+        profile = settings[args.task];
+
+    // load options from task profile
+    for(var k in profile) {
+      if(opts.hasOwnProperty(k)) {
+        opts[k] = profile[k];
+      }
+    }
+  }
+
+  // replace :input in option strings
+  opts.cmd = opts.cmd.replace(":input",input);
+  opts.qpfile = opts.qpfile.replace(":input",input);
+  opts.tcfile = opts.tcfile.replace(":input",input);
+
+  if(!opts.cmd) {
+    throw new Error("No encoding settings specified!");
+  }
+
+  // options should be sorted out now, so it's time to move on to the actual encoding
+  // 
+  // first, we get the input framecount
+  var frames = 0;
+  framecount(input)
+  // then we generate the partial scripts and their relevant files
+  .then(function(framecount) {
+    frames = framecount;
+    return split(input, opts, frames);
+  })
+  // then we run the actual parallel encodes.
+  .then(function(parts) {
+
+  })
+  // and finally we log some compiled statistics.
+  .then(function() {
+
+  });
 
 // first, get the input framecount
-framecount(INPUT)
+framecount(input)
 // then split the .avs for parallel encoding
 .then(function(framecount) {
   FRAMES = framecount;
-  return parallel(INPUT, PARTS, FRAMES);
+  return parallel(INPUT, PARTS, FRAMES, QPFILE, TCFILE);
 // then launch the actual encodes
 }).then(function(partlist) {
   var d = Q.defer();
@@ -61,7 +112,7 @@ function framecount(input) {
   return d.promise;
 }
 
-function parallel(input, parts, framecount) {
+function split(input, opts, frames) {
   var d = Q.defer();
   var partlist = [];
 
@@ -69,12 +120,12 @@ function parallel(input, parts, framecount) {
 
   // if parts is set to auto (0), read the input file for comment lines starting with a trim, eg. #Trim(0,100)
   if(parts === 0) {
-    var infile = fs.readFileSync(input+AVS, {encoding: "utf8"}).split("\r");
+    var infile = fs.readFileSync(input, {encoding: "utf8"}).split("\r");
     var line, match;
     for(var j = 0, jj = infile.length; i < ii; i++) {
       line = infile[j];
       if(match = line.match(/^#Trim\(([0-9]+),([0-9]+)\)/i)) {
-        trims.push({line: line.replace(/^#/,""), framecount: (match[2] - match[1] + 1)});
+        trims.push({line: line.replace(/^#/,""), frames: (match[2] - match[1] + 1)});
       }
     }
     parts = trims.length;
