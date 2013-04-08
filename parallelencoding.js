@@ -1,8 +1,8 @@
 /*jshint node:true */
 
-var program = require('commander'),
-    tracker = require('./lib/tracker')(process.stdout),
-    parser  = require('./lib/consoleparser'),
+var tracker = require('./lib/taskman')(process.stdout),
+    parser  = require('./lib/progparse'),
+    avsinfo = require('./lib/avsinfo'),
     Proc    = require('./lib/proc'),
     Q       = require('q'),
     fs      = require('fs');
@@ -10,7 +10,7 @@ var program = require('commander'),
 var INPUT  = "01.avs",
     TEMP   = "01",
     OUTPUT = "NUL",
-    PARTS  = 1,
+    PARTS  = 2,
     FRAMES = 0;
 
 // first, get the input framecount
@@ -26,8 +26,6 @@ framecount(INPUT)
   for(var i = 0; i < PARTS; i++) {
     var part = partlist[i];
     jobs.push(encode(part.input, part.output, part.framecount));
-    // do visual update on progress
-    jobs[i].progress(tracker.draw);
   }
   Q.all(jobs).done(function() {
     d.resolve();
@@ -50,7 +48,7 @@ function framecount(input) {
   var d = Q.defer();
   var info = new Proc('avsinfo :i', {i: input});
   info.on.out = function(data) {
-    var log = parser.info(data);
+    var log = avsinfo(data);
     info.kill();
     d.resolve(log.length);
   };
@@ -100,10 +98,9 @@ function encode(input, output, framecount) {
 
   // encode progress reporting
   enc.on.log = function(data) {
-    var log = parser.encoder(enc, data);
+    var log = parser(enc, data);
     tracker.update(job, log.frames, {fps: log.fps, bitrate: log.bitrate});
-    // promise progress update
-    d.notify();
+    tracker.draw();
   };
   enc.on.close = function() {
     d.resolve(true);
