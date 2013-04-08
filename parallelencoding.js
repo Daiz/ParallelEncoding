@@ -69,7 +69,7 @@ module.exports = function(input, args) {
   .then(function() {
 
   });
-
+/*
 // first, get the input framecount
 framecount(input)
 // then split the .avs for parallel encoding
@@ -98,7 +98,7 @@ framecount(input)
   fps /= PARTS;
   bitrate /= PARTS;
   console.log("Encoded "+FRAMES+" frames, "+fps.toFixed(2)+" fps, "+bitrate.toFixed(2)+" kb/s");
-});
+});*/
 };
 
 function framecount(input) {
