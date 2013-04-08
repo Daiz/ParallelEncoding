@@ -1,7 +1,7 @@
 /*jshint node:true */
 
 var tracker = require('./lib/taskman')(process.stdout),
-    parser  = require('./lib/progparse'),
+    parser  = require('./lib/progparser'),
     avsinfo = require('./lib/avsinfo'),
     Proc    = require('./lib/proc'),
     Q       = require('q'),
