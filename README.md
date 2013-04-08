@@ -8,6 +8,14 @@ A node.js module & command-line utility for doing parallel encoding with x264/ff
 
 The script will be added to the package repository later on. Global installation makes the `encode` command available. Run `encode --help` for info on how to use it.
 
+## Features
+
+- AVS file splitting with number of parts or custom trims
+- x264 qpfile splitting (TBD)
+- Timecode splitting (TBD)
+- Result merging (TBD)
+- Parallel encoding (duh)
+
 ## Dependencies
 
 This script relies heavily on external programs that should be available in your PATH. The only thing that is absolutely required is `avsinfo`. Beyond that, you'll probably want to have at least some of the following:
