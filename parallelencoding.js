@@ -1,21 +1,35 @@
 /*jshint node:true, boss:true */
 
-var tracker = require('./lib/taskman')(process.stdout),
+var tracker = require('./lib/taskman'),
     parser  = require('./lib/progparser'),
     avsinfo = require('./lib/avsinfo'),
     Proc    = require('./lib/proc'),
     Q       = require('q'),
+    charm   = require('charm')(),
     fs      = require('fs');
 
-module.exports = function(input, args) {
+module.exports = function(input, args, output) {
+
+  // make the whole encode a promise
+  var d = Q.defer();
+
+  // generate tracker
+  tracker = tracker(charm);
+  charm.pipe(output);
 
   var opts = {
     parts: 1,
+    format: "mkv",
     merge: false,
     qpfile: null,
     tcfile: null,
     cmd: ""
   };
+
+  // remove potential .avs from input
+  input = input.replace(/\.avs$/i,"");
+
+  var infile = input+".avs";
 
   // check for encode.json - existence overrides --settings and --setfile
   if(fs.existsSync("./encode.json")) {
@@ -40,23 +54,39 @@ module.exports = function(input, args) {
       if(fs.existsSync(args.setfile)) {
         opts.cmd = fs.readFileSync(args.setfile, {encoding:"utf8"});
       } else {
-        console.log("Could not find "+args.setfile);
+        charm.write("Could not find "+args.setfile);
       }
     }
 
   }
 
-  // replace :input in option strings
-  opts.cmd = opts.cmd.replace(":input",input);
+  // default qpfile & tcfile
+  opts.qpfile = opts.qpfile || ":input.qpfile";
+  opts.tcfile = opts.tcfile || ":input.tc.txt";
+
+  // replace :input in qpfile & tcfile strings
   opts.qpfile = opts.qpfile.replace(":input",input);
   opts.tcfile = opts.tcfile.replace(":input",input);
+
+  // look for qpfile
+  if(fs.existsSync(opts.qpfile)) {
+    // load qpfile
+  } else {
+    charm.write("No QPfile found. Proceeding without.");
+  }
+
+  if(fs.existsSync(opts.tcfile)) {
+    // load timecodes
+  } else {
+    charm.write("No timecodes found. Proceeding without.");
+  }
 
   if(!opts.cmd) {
     throw new Error("No encoding settings specified!");
   }
 
-  // options should be sorted out now, so it's time to move on to the actual encoding
-  // 
+  // options should be sorted out now, so it's time to move on to the actual encoding process
+
   // first, we get the input framecount
   var frames = 0;
   framecount(input)
@@ -67,42 +97,32 @@ module.exports = function(input, args) {
   })
   // then we run the actual parallel encodes.
   .then(function(parts) {
-
+    var e = Q.defer();
+    var jobs = [];
+    for(var i = 0; i < opts.parts; i++) {
+      var part = parts[i];
+      jobs.push(encode(part.input, part.output, part.frames));
+    }
+    Q.all(jobs).done(function() {
+      e.resolve();
+    });
+    return e.promise;
   })
-  // and finally we log some compiled statistics.
+  // and finally we log some compiled statistics and resolve the promise.
   .then(function() {
-
-  });
-/*
-// first, get the input framecount
-framecount(input)
-// then split the .avs for parallel encoding
-.then(function(framecount) {
-  FRAMES = framecount;
-  return parallel(INPUT, PARTS, FRAMES, QPFILE, TCFILE);
-// then launch the actual encodes
-}).then(function(partlist) {
-  var d = Q.defer();
-  var jobs = [];
-  for(var i = 0; i < PARTS; i++) {
-    var part = partlist[i];
-    jobs.push(encode(part.input, part.output, part.framecount));
-  }
-  Q.all(jobs).done(function() {
+    var fps = 0, bitrate = 0;
+    for(var i = 0; i < opts.parts; i++) {
+      fps += tracker.tasks[i].fps;
+      bitrate += tracker.tasks[i].bitrate;
+    }
+    fps /= opts.parts;
+    bitrate /= opts.parts;
+    charm.write("Encoded "+frames+" frames, "+fps.toFixed(2)+" fps, "+bitrate.toFixed(2)+" kb/s");
     d.resolve();
   });
+
   return d.promise;
-// finally, log average bitrate and fps.
-}).then(function() {
-  var fps = 0, bitrate = 0;
-  for(var i = 0; i < PARTS; i++) {
-    fps += tracker.tasks[i].fps;
-    bitrate += tracker.tasks[i].bitrate;
-  }
-  fps /= PARTS;
-  bitrate /= PARTS;
-  console.log("Encoded "+FRAMES+" frames, "+fps.toFixed(2)+" fps, "+bitrate.toFixed(2)+" kb/s");
-});*/
+
 };
 
 function framecount(input) {
@@ -128,8 +148,8 @@ function split(input, opts, frames) {
     var line, match;
     for(var j = 0, jj = infile.length; i < ii; i++) {
       line = infile[j];
-      if(match = line.match(/^#\s*Trim\(([0-9]+),([0-9]+)\)/i)) {
-        trims.push({line: line.replace(/^#\s*/,""), frames: (match[2] - match[1] + 1)});
+      if(match = line.match(/^#~?\s*Trim\(([0-9]+),([0-9]+)\)/i)) {
+        trims.push({line: line.replace(/^#~?\s*/,""), frames: (match[2] - match[1] + 1)});
       }
     }
     parts = trims.length;
