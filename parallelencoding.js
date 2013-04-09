@@ -17,18 +17,6 @@ module.exports = function(input, args) {
     cmd: ""
   };
 
-  if(args.settings) {
-    opts.cmd = args.settings;
-  }
-
-  if(args.setfile) {
-    if(fs.existsSync(args.setfile)) {
-      opts.cmd = fs.readFileSync(args.setfile, {encoding:"utf8"});
-    } else {
-      console.log("Could not find "+args.setfile);
-    }
-  }
-
   // check for encode.json - existence overrides --settings and --setfile
   if(fs.existsSync("./encode.json")) {
     var settings = require('./encode.json'),
@@ -40,6 +28,22 @@ module.exports = function(input, args) {
         opts[k] = profile[k];
       }
     }
+  } else {
+
+    // --settings
+    if(args.settings) {
+      opts.cmd = args.settings;
+    }
+
+    // --setfile overrides --settings
+    if(args.setfile) {
+      if(fs.existsSync(args.setfile)) {
+        opts.cmd = fs.readFileSync(args.setfile, {encoding:"utf8"});
+      } else {
+        console.log("Could not find "+args.setfile);
+      }
+    }
+
   }
 
   // replace :input in option strings
@@ -124,8 +128,8 @@ function split(input, opts, frames) {
     var line, match;
     for(var j = 0, jj = infile.length; i < ii; i++) {
       line = infile[j];
-      if(match = line.match(/^#Trim\(([0-9]+),([0-9]+)\)/i)) {
-        trims.push({line: line.replace(/^#/,""), frames: (match[2] - match[1] + 1)});
+      if(match = line.match(/^#\s*Trim\(([0-9]+),([0-9]+)\)/i)) {
+        trims.push({line: line.replace(/^#\s*/,""), frames: (match[2] - match[1] + 1)});
       }
     }
     parts = trims.length;
