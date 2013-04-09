@@ -1,6 +1,6 @@
 # ParallelEncoding.js
 
-A node.js module & command-line utility for doing parallel encoding with x264/ffmpeg and Avisynth. Heavily work-in-progress. To install:
+A node.js module & command-line utility for doing parallel encoding with x264/ffmpeg and Avisynth. Heavily work-in-progress. May or may not work depending on the commit. To install:
 
 1. Clone the repository with `git clone https://github.com/Daiz-/ParallelEncoding.git`
 2. Navigate into the directory where you cloned the repository
