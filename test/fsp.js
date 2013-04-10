@@ -26,4 +26,34 @@ suite("File System with Promises", function() {
 
   });
 
+  suite("Directories", function() {
+
+    test("Creation works", function(finished) {
+      fs.mkdir("./test/directory").then(
+      function(done) {
+        done.should.equal(true);
+      }, function(err) {
+        should.not.exist(err);
+      }).done(finished);
+    });
+
+    test("Removal works", function(finished) {
+      fs.rmdir("./test/directory").then(
+      function(done) {
+        done.should.equal(true);
+      }, function(err) {
+        should.not.exist(err);
+      }).done(finished);
+    });
+
+    test("Can't remove a non-existent directory", function(finished) {
+      fs.rmdir("./test/directory").fail(
+        function(err) {
+          should.exist(err);
+        }
+      ).done(finished);
+    });
+
+  });
+
 });
