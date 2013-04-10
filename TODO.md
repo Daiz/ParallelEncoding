@@ -1,4 +1,4 @@
 - Make everything a promise
 - Replace all blocking IO with non-blocking IO
+- Add actual error handling to promises
 - Use Vows for testing?
-- Write a promise wrapper for FS module
