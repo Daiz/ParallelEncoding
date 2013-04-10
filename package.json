@@ -7,7 +7,6 @@
     "encode": "./bin/encode"
   },
   "scripts": {
-    "encode": "node ./bin/encode",
     "test": "node ./node_modules/mocha/bin/mocha"
   },
   "main": "./parallelencoding",
